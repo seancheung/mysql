@@ -9,7 +9,8 @@ function boot_mysql()
     chown -R mysql:mysql /var/run/mysqld
 
     bootfile=$1
-    echo "ALTER USER 'root'@'localhost' IDENTIFIED BY '';" > $bootfile
+    echo "USE mysql;" > $bootfile
+    echo "UPDATE user SET password=PASSWORD('') WHERE user='root' AND host='localhost';" >> $bootfile
 
     if [ -n "$MYSQL_ROOT_PASSWORD" ]; then
         echo "[Mysql] updating root password"
@@ -64,6 +65,8 @@ function boot_mysql()
     fi
 
     echo "FLUSH PRIVILEGES;" >> $bootfile
+
+    mysql_install_db
 }
 
 if [ ! -f "$MYSQL_INITSQL" ] && [ -z "$MYSQL_SKIP_INIT" ]; then
