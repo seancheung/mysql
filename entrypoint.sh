@@ -1,11 +1,8 @@
 #!/bin/bash
 set -e
 
-function boot_mysql()
+function init_mysql()
 {   
-    mkdir -p /var/run/mysqld
-    chown -R mysql:mysql /var/run/mysqld
-
     bootfile=$1
     echo "[Mysql] secure installation"
     echo "USE mysql;" > $bootfile;
@@ -68,18 +65,21 @@ function boot_mysql()
     fi
 
     echo "FLUSH PRIVILEGES;" >> $bootfile
-
-    mysql_install_db
 }
 
 args=()
 
-if [ ! -d "/var/run/mysqld" ] && [ -z "$MYSQL_SKIP_INIT" ]; then
-    tfile=`mktemp`
-    chown mysql:mysql $tfile
-    boot_mysql "$tfile"
-    args+=("--init-file=$tfile")
-    echo "[Mysql] initializing from $tfile"
+if [ ! -d "/var/run/mysqld" ]; then
+    mkdir -p /var/run/mysqld
+    chown -R mysql:mysql /var/run/mysqld
+    mysql_install_db
+    if [ -z "$MYSQL_SKIP_INIT" ]; then
+        tfile=`mktemp`
+        chown mysql:mysql $tfile
+        init_mysql "$tfile"
+        args+=("--init-file=$tfile")
+        echo "[Mysql] initializing from $tfile"
+    fi
 fi
 
 exec "$@" "${args[@]}"
