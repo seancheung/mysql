@@ -43,6 +43,20 @@ For multiple database creation, seperate entries with `;`.
 e.g. `database1;username@database2;username@database3`
 
 
+**MYSQL_MODE**
+
+Update mysql_mode in /etc/mysql/my.cnf
+
+e.g. `STRICT_TRANS_TABLES,NO_AUTO_CREATE_USER`
+
+
+**MYSQL_TIMEZONE**
+
+Set default timezone in /etc/mysql/my.cnf
+
+e.g. `+08:00`
+
+
 **MYSQL_SKIP_INIT**
 
 If this variable is set(not empty), Initialization will be skipped.

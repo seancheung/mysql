@@ -72,6 +72,14 @@ args=()
 if [ ! -d "/var/run/mysqld" ]; then
     mkdir -p /var/run/mysqld
     chown -R mysql:mysql /var/run/mysqld
+    if [ -n "$MYSQL_TIMEZONE" ]; then
+        echo "[Mysql] setting timezone to $MYSQL_TIMEZONE"
+        sed -i -re "s/(^default-time-zone\s*=\s*')[^']+('$)/\1$MYSQL_TIMEZONE\2/g" /etc/mysql/my.cnf
+    fi
+    if [ -n "$MYSQL_MODE" ]; then
+        echo "[Mysql] setting sql mode to $MYSQL_MODE"
+        sed -i -re "s/(^sql_mode\s*=\s*\")[^\"]+(\"$)/\1$MYSQL_MODE\2/g" /etc/mysql/my.cnf
+    fi
     mysql_install_db
     if [ -z "$MYSQL_SKIP_INIT" ]; then
         tfile=`mktemp`
