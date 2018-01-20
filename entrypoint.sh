@@ -1,15 +1,14 @@
 #!/bin/bash
 set -e
 
-MYSQL_INITSQL=/.init
-
-function boot_mysql()
+function init_mysql()
 {   
-    mkdir -p /var/run/mysqld
-    chown -R mysql:mysql /var/run/mysqld
-
     bootfile=$1
+    echo "[Mysql] secure installation"
     echo "ALTER USER 'root'@'localhost' IDENTIFIED BY '';" > $bootfile
+    echo "DELETE FROM mysql.user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');" >> $bootfile
+    echo "DELETE FROM mysql.user WHERE User='';" >> $bootfile
+    echo "DELETE FROM mysql.db WHERE Db LIKE 'test%';" >> $bootfile
 
     if [ -n "$MYSQL_ROOT_PASSWORD" ]; then
         echo "[Mysql] updating root password"
@@ -66,9 +65,27 @@ function boot_mysql()
     echo "FLUSH PRIVILEGES;" >> $bootfile
 }
 
-if [ ! -f "$MYSQL_INITSQL" ] && [ -z "$MYSQL_SKIP_INIT" ]; then
-    boot_mysql "$MYSQL_INITSQL"
+args=()
+
+if [ ! -d "/var/run/mysqld" ]; then
+    mkdir -p /var/run/mysqld
+    chown -R mysql:mysql /var/run/mysqld
+    if [ -n "$MYSQL_TIMEZONE" ]; then
+        echo "[Mysql] setting timezone to $MYSQL_TIMEZONE"
+        sed -i -re "s/(^default-time-zone\s*=\s*')[^']+('$)/\1$MYSQL_TIMEZONE\2/g" /etc/mysql/my.cnf
+    fi
+    if [ -n "$MYSQL_MODE" ]; then
+        echo "[Mysql] setting sql mode to $MYSQL_MODE"
+        sed -i -re "s/(^sql_mode\s*=\s*\")[^\"]+(\"$)/\1$MYSQL_MODE\2/g" /etc/mysql/my.cnf
+    fi
+    if [ -z "$MYSQL_SKIP_INIT" ]; then
+        tfile=`mktemp`
+        chown mysql:mysql $tfile
+        init_mysql "$tfile"
+        args+=("--init-file=$tfile")
+        echo "[Mysql] initializing from $tfile"
+    fi
 fi
 
-exec "$@"
+exec "$@" "${args[@]}"
 
