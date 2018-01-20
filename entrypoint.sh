@@ -1,16 +1,19 @@
 #!/bin/bash
 set -e
 
-MYSQL_INITSQL=/.init
-
 function boot_mysql()
 {   
     mkdir -p /var/run/mysqld
     chown -R mysql:mysql /var/run/mysqld
 
     bootfile=$1
-    echo "USE mysql;" > $bootfile
-    echo "UPDATE user SET password=PASSWORD('') WHERE user='root' AND host='localhost';" >> $bootfile
+    echo "[Mysql] secure installation"
+    echo "USE mysql;" > $bootfile;
+    echo "UPDATE user SET password=PASSWORD('') WHERE User='root' AND host='localhost';" >> $bootfile
+    echo "DELETE FROM user WHERE User='root' AND Host NOT IN ('localhost', '127.0.0.1', '::1');" >> $bootfile
+    echo "DELETE FROM user WHERE User='';" >> $bootfile
+    echo "DELETE FROM db WHERE Db LIKE 'test%';" >> $bootfile
+    echo "DROP DATABASE test;" >> $bootfile
 
     if [ -n "$MYSQL_ROOT_PASSWORD" ]; then
         echo "[Mysql] updating root password"
@@ -69,9 +72,15 @@ function boot_mysql()
     mysql_install_db
 }
 
-if [ ! -f "$MYSQL_INITSQL" ] && [ -z "$MYSQL_SKIP_INIT" ]; then
-    boot_mysql "$MYSQL_INITSQL"
+args=()
+
+if [ ! -d "/var/run/mysqld" ] && [ -z "$MYSQL_SKIP_INIT" ]; then
+    tfile=`mktemp`
+    chown mysql:mysql $tfile
+    boot_mysql "$tfile"
+    args+=("--init-file=$tfile")
+    echo "[Mysql] initializing from $tfile"
 fi
 
-exec "$@"
+exec "$@" "${args[@]}"
 
